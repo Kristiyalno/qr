@@ -1,5 +1,14 @@
 'use strict';
 
+// ── Sanity check ───────────────────────────────────────────────────────────
+if (typeof jsQR === 'undefined') {
+  document.body.innerHTML = `<div style="font-family:monospace;color:#e05c5c;padding:40px;background:#0f0f11;min-height:100vh">
+    <strong>Error:</strong> jsQR.min.js failed to load.<br><br>
+    Make sure jsQR.min.js is in the same folder as index.html and is committed to your repo.
+  </div>`;
+  throw new Error('jsQR not loaded');
+}
+
 // ── State ──────────────────────────────────────────────────────────────────
 const state = {
   history: [],        // { value, type, time, filename }
