@@ -9,246 +9,226 @@
 </head>
 <body>
 
-  <!-- ── Global nav ──────────────────────────────── -->
-  <nav class="topnav">
-    <div class="wordmark">
-      <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-        <rect x="0.5" y="0.5" width="5" height="5" stroke="currentColor" stroke-width="1"/>
-        <rect x="1.5" y="1.5" width="3" height="3" fill="currentColor"/>
-        <rect x="8.5" y="0.5" width="5" height="5" stroke="currentColor" stroke-width="1"/>
-        <rect x="9.5" y="1.5" width="3" height="3" fill="currentColor"/>
-        <rect x="0.5" y="8.5" width="5" height="5" stroke="currentColor" stroke-width="1"/>
-        <rect x="1.5" y="9.5" width="3" height="3" fill="currentColor"/>
-        <rect x="8.5" y="8.5" width="2" height="2" fill="currentColor"/>
-        <rect x="11.5" y="8.5" width="2" height="2" fill="currentColor"/>
-        <rect x="8.5" y="11.5" width="2" height="2" fill="currentColor"/>
-        <rect x="11.5" y="11.5" width="2" height="2" fill="currentColor"/>
-      </svg>
-      qr-tools
+<nav class="topnav">
+  <div class="wordmark">
+    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <rect x="0.5" y="0.5" width="5" height="5" stroke="currentColor" stroke-width="1"/>
+      <rect x="1.5" y="1.5" width="3" height="3" fill="currentColor"/>
+      <rect x="8.5" y="0.5" width="5" height="5" stroke="currentColor" stroke-width="1"/>
+      <rect x="9.5" y="1.5" width="3" height="3" fill="currentColor"/>
+      <rect x="0.5" y="8.5" width="5" height="5" stroke="currentColor" stroke-width="1"/>
+      <rect x="1.5" y="9.5" width="3" height="3" fill="currentColor"/>
+      <rect x="8.5" y="8.5" width="2" height="2" fill="currentColor"/>
+      <rect x="11.5" y="8.5" width="2" height="2" fill="currentColor"/>
+      <rect x="8.5" y="11.5" width="2" height="2" fill="currentColor"/>
+      <rect x="11.5" y="11.5" width="2" height="2" fill="currentColor"/>
+    </svg>
+    qr-tools
+  </div>
+  <div class="tabs">
+    <button class="tab active" data-tab="scanner">scanner</button>
+    <button class="tab" data-tab="generator">generator</button>
+  </div>
+</nav>
+
+<!-- SCANNER -->
+<div class="page active" id="page-scanner">
+
+  <!-- Left: input -->
+  <div class="pane">
+    <div class="prow">
+      <span class="prow-title">input</span>
+      <span class="prow-hint">ctrl+v · drag · click</span>
     </div>
-    <div class="tabs">
-      <button class="tab active" data-tab="scanner">scanner</button>
-      <button class="tab" data-tab="generator">generator</button>
-    </div>
-  </nav>
 
-  <!-- ════════════════════════════════════════════════
-       SCANNER PAGE
-  ════════════════════════════════════════════════ -->
-  <div class="page active" id="page-scanner">
-    <div class="layout">
-
-      <!-- Left pane: input -->
-      <div class="pane pane-left">
-        <div class="pane-header">
-          <span class="pane-title">input</span>
-          <span class="dim">ctrl+v · drag · click</span>
-        </div>
-
-        <div class="drop-zone" id="dropZone" tabindex="0" role="button"
-             aria-label="Drop image, click to choose file, or paste">
-          <div class="drop-inner">
-            <span class="dim small">drop image / paste / click</span>
-            <div class="drop-btns">
-              <button class="btn" id="uploadBtn">[ choose file ]</button>
-              <button class="btn" id="cameraBtn">[ camera ]</button>
-            </div>
-          </div>
-          <div class="drop-overlay" aria-hidden="true">drop to scan</div>
-        </div>
-
-        <div class="preview-wrap" id="previewWrap" hidden>
-          <img class="preview-img" id="previewImg" alt="" />
-        </div>
-
-        <div class="history-wrap">
-          <div class="pane-header sub">
-            <span class="dim small" id="historyCount">history — 0 scans</span>
-            <button class="btn danger" id="clearAll" hidden>[ clear ]</button>
-          </div>
-          <div class="history-list" id="historyList">
-            <div class="empty-row">no scans yet</div>
-          </div>
+    <div class="drop-zone" id="dropZone" tabindex="0" role="button">
+      <div class="drop-inner">
+        <span style="font-family:var(--mono);font-size:11px;color:var(--dim2)">drop image / paste / click</span>
+        <div class="drop-btns">
+          <button class="btn" id="uploadBtn">[ choose file ]</button>
+          <button class="btn" id="cameraBtn">[ camera ]</button>
         </div>
       </div>
+      <div class="drop-overlay">drop to scan</div>
+    </div>
 
-      <!-- Right pane: result -->
-      <div class="pane pane-right">
-        <div class="pane-header">
-          <span class="pane-title" id="resultLabel">result</span>
-          <button class="btn" id="copyAll" hidden>[ copy all ]</button>
-        </div>
+    <div class="preview-wrap" id="previewWrap" hidden>
+      <img class="preview-img" id="previewImg" alt="" />
+    </div>
 
-        <div class="processing-row" id="processing" hidden>
-          <span class="spinner"></span>
-          <span id="processingText">scanning...</span>
-        </div>
-
-        <div class="result-panel" id="resultPanel">
-          <div class="result-empty" id="resultEmpty"><span class="dim small">waiting for input</span></div>
-          <div class="result-list" id="resultList"></div>
-        </div>
+    <div class="history-wrap">
+      <div class="prow sub">
+        <span class="prow-title" id="historyCount">history — 0 scans</span>
+        <button class="btn err" id="clearAll" hidden>[ clear ]</button>
       </div>
-
+      <div class="history-list" id="historyList">
+        <div class="empty-hint">no scans yet</div>
+      </div>
     </div>
   </div>
 
-  <!-- ════════════════════════════════════════════════
-       GENERATOR PAGE
-  ════════════════════════════════════════════════ -->
-  <div class="page" id="page-generator">
-    <div class="layout gen-layout">
+  <!-- Right: result -->
+  <div class="pane">
+    <div class="prow">
+      <span class="prow-title" id="resultLabel">result</span>
+      <button class="btn" id="copyAll" hidden>[ copy all ]</button>
+    </div>
+    <div class="proc-row" id="processing" hidden>
+      <span class="spinner"></span>
+      <span id="processingText">scanning...</span>
+    </div>
+    <div class="result-panel" id="resultPanel">
+      <div class="result-empty" id="resultEmpty">waiting for input</div>
+      <div id="resultList"></div>
+    </div>
+  </div>
 
-      <!-- Left pane: controls -->
-      <div class="pane pane-left gen-controls">
-        <div class="pane-header">
-          <span class="pane-title">content</span>
-          <select class="sel" id="genType">
-            <option value="url">URL</option>
-            <option value="text">Text</option>
-            <option value="email">Email</option>
-            <option value="phone">Phone</option>
-            <option value="sms">SMS</option>
-            <option value="wifi">WiFi</option>
-            <option value="vcard">vCard</option>
-            <option value="geo">Geo</option>
-            <option value="event">Calendar event</option>
-            <option value="crypto">Crypto address</option>
+</div>
+
+<!-- GENERATOR -->
+<div class="page gen-page" id="page-generator">
+
+  <!-- Left: controls -->
+  <div class="pane">
+    <div class="prow">
+      <span class="prow-title">content</span>
+      <select class="sel" id="genType">
+        <option value="url">URL</option>
+        <option value="text">Text</option>
+        <option value="email">Email</option>
+        <option value="phone">Phone</option>
+        <option value="sms">SMS</option>
+        <option value="wifi">WiFi</option>
+        <option value="vcard">vCard</option>
+        <option value="geo">Geo</option>
+        <option value="event">Calendar event</option>
+        <option value="crypto">Crypto address</option>
+      </select>
+    </div>
+
+    <div class="gen-scroll">
+
+      <div class="field-group" id="fieldGroup"></div>
+
+      <div class="prow sub"><span class="prow-title">appearance</span></div>
+
+      <!-- FG color -->
+      <div class="color-row">
+        <span class="field-label">foreground</span>
+        <div class="color-inputs">
+          <div class="swatch" id="fgSwatch" style="background:#000000"></div>
+          <input class="inp c-hex" id="fgHex" value="#000000" maxlength="9" spellcheck="false" />
+          <input class="inp c-num" id="fgR" value="0"   maxlength="3" placeholder="R" />
+          <input class="inp c-num" id="fgG" value="0"   maxlength="3" placeholder="G" />
+          <input class="inp c-num" id="fgB" value="0"   maxlength="3" placeholder="B" />
+        </div>
+      </div>
+
+      <!-- BG color -->
+      <div class="color-row">
+        <span class="field-label">background</span>
+        <div class="color-inputs">
+          <div class="swatch" id="bgSwatch" style="background:#ffffff"></div>
+          <input class="inp c-hex" id="bgHex" value="#ffffff" maxlength="9" spellcheck="false" />
+          <input class="inp c-num" id="bgR" value="255" maxlength="3" placeholder="R" />
+          <input class="inp c-num" id="bgG" value="255" maxlength="3" placeholder="G" />
+          <input class="inp c-num" id="bgB" value="255" maxlength="3" placeholder="B" />
+        </div>
+      </div>
+
+      <!-- Options -->
+      <div class="opts-row">
+        <div class="opt-field">
+          <span class="field-label">error correction</span>
+          <select class="sel" id="genEcc">
+            <option value="L">L — 7%</option>
+            <option value="M" selected>M — 15%</option>
+            <option value="Q">Q — 25%</option>
+            <option value="H">H — 30%</option>
           </select>
         </div>
-
-        <div class="gen-scroll">
-
-          <!-- Dynamic content fields -->
-          <div class="field-group" id="fieldGroup"></div>
-
-          <!-- Divider -->
-          <div class="pane-header sub" style="margin-top:4px;">
-            <span class="pane-title">appearance</span>
-          </div>
-
-          <div class="appearance-grid">
-            <!-- Foreground color -->
-            <div class="color-row">
-              <span class="dim small">foreground</span>
-              <div class="color-inputs">
-                <div class="color-swatch" id="fgSwatch" style="background:#000000" title="Open color picker"></div>
-                <input class="inp color-hex" id="fgHex" value="#000000" maxlength="9" spellcheck="false" />
-                <input class="inp color-num" id="fgR" value="0"   maxlength="3" placeholder="R" />
-                <input class="inp color-num" id="fgG" value="0"   maxlength="3" placeholder="G" />
-                <input class="inp color-num" id="fgB" value="0"   maxlength="3" placeholder="B" />
-              </div>
-            </div>
-            <!-- Background color -->
-            <div class="color-row">
-              <span class="dim small">background</span>
-              <div class="color-inputs">
-                <div class="color-swatch" id="bgSwatch" style="background:#ffffff" title="Open color picker"></div>
-                <input class="inp color-hex" id="bgHex" value="#ffffff" maxlength="9" spellcheck="false" />
-                <input class="inp color-num" id="bgR" value="255" maxlength="3" placeholder="R" />
-                <input class="inp color-num" id="bgG" value="255" maxlength="3" placeholder="G" />
-                <input class="inp color-num" id="bgB" value="255" maxlength="3" placeholder="B" />
-              </div>
-            </div>
-          </div>
-
-          <!-- Error correction + size -->
-          <div class="options-row">
-            <div class="opt-field">
-              <span class="dim small">error correction</span>
-              <select class="sel" id="genEcc">
-                <option value="L">L — 7%</option>
-                <option value="M" selected>M — 15%</option>
-                <option value="Q">Q — 25%</option>
-                <option value="H">H — 30%</option>
-              </select>
-            </div>
-            <div class="opt-field">
-              <span class="dim small">size (px)</span>
-              <input class="inp" id="genSize" type="number" value="512" min="64" max="4096" step="64" />
-            </div>
-            <div class="opt-field">
-              <span class="dim small">margin (modules)</span>
-              <input class="inp" id="genMargin" type="number" value="4" min="0" max="20" />
-            </div>
-          </div>
-
-          <!-- Corner radius -->
-          <div class="options-row">
-            <div class="opt-field" style="flex:0 0 120px">
-              <span class="dim small">corner radius (%)</span>
-              <input class="inp draft-inp" id="genRadius" type="text" value="0" placeholder="0–50" />
-            </div>
-            <div class="opt-field" style="flex:0 0 90px">
-              <span class="dim small">module style</span>
-              <select class="sel" id="genModuleStyle">
-                <option value="square">square</option>
-                <option value="round">round</option>
-                <option value="dots">dots</option>
-              </select>
-            </div>
-          </div>
-
-          <!-- Text labels -->
-          <div class="pane-header sub">
-            <span class="pane-title">text labels</span>
-            <button class="btn accent" id="addLabel">[ + add ]</button>
-          </div>
-          <div class="label-list" id="labelList"></div>
-
-          <!-- Export -->
-          <div class="pane-header sub">
-            <span class="pane-title">export</span>
-          </div>
-          <div class="export-row">
-            <button class="btn" id="exportPNG">[ PNG ]</button>
-            <button class="btn" id="exportSVG">[ SVG ]</button>
-            <button class="btn" id="exportWEBP">[ WEBP ]</button>
-            <button class="btn" id="exportJPEG">[ JPEG ]</button>
-            <button class="btn" id="exportBMP">[ BMP ]</button>
-            <button class="btn accent" id="copyQR">[ copy image ]</button>
-          </div>
+        <div class="opt-field">
+          <span class="field-label">size (px)</span>
+          <input class="inp" id="genSize" type="text" value="512" />
+        </div>
+        <div class="opt-field">
+          <span class="field-label">margin (modules)</span>
+          <input class="inp" id="genMargin" type="text" value="4" />
         </div>
       </div>
 
-      <!-- Right pane: preview -->
-      <div class="pane pane-right gen-preview-pane">
-        <div class="pane-header">
-          <span class="pane-title">preview</span>
-          <span class="dim small" id="genStatus">—</span>
+      <div class="opts-row">
+        <div class="opt-field" style="flex:0 0 100px">
+          <span class="field-label">corner radius (%)</span>
+          <input class="inp" id="genRadius" type="text" value="0" placeholder="0–50" />
         </div>
-        <div class="gen-preview-area">
-          <canvas id="genCanvas"></canvas>
-          <div class="gen-empty" id="genEmpty"><span class="dim small">fill in content to generate</span></div>
+        <div class="opt-field" style="flex:0 0 100px">
+          <span class="field-label">module style</span>
+          <select class="sel" id="genModuleStyle">
+            <option value="square">square</option>
+            <option value="round">round</option>
+            <option value="dots">dots</option>
+          </select>
         </div>
+      </div>
+
+      <!-- Text labels -->
+      <div class="prow sub">
+        <span class="prow-title">text labels</span>
+        <button class="btn acc" id="addLabel">[ + add ]</button>
+      </div>
+      <div class="label-list" id="labelList"></div>
+
+      <!-- Export -->
+      <div class="prow sub"><span class="prow-title">export</span></div>
+      <div class="export-row">
+        <button class="btn" id="exportPNG">[ PNG ]</button>
+        <button class="btn" id="exportSVG">[ SVG ]</button>
+        <button class="btn" id="exportWEBP">[ WEBP ]</button>
+        <button class="btn" id="exportJPEG">[ JPEG ]</button>
+        <button class="btn" id="exportBMP">[ BMP ]</button>
+        <button class="btn acc" id="copyQR">[ copy image ]</button>
       </div>
 
     </div>
   </div>
 
-  <!-- Color picker popup -->
-  <div class="cpicker" id="colorPicker" hidden>
-    <div class="cp-sv-wrap">
-      <canvas class="cp-sv" id="cpSV" width="200" height="150"></canvas>
-      <div class="cp-sv-cursor" id="cpSVCursor"></div>
+  <!-- Right: preview -->
+  <div class="pane preview-pane">
+    <div class="prow">
+      <span class="prow-title">preview</span>
+      <span class="prow-hint" id="genStatus">—</span>
     </div>
-    <canvas class="cp-hue" id="cpHue" width="200" height="14"></canvas>
-    <div class="cp-hue-cursor" id="cpHueCursor"></div>
-    <canvas class="cp-alpha" id="cpAlpha" width="200" height="14"></canvas>
-    <div class="cp-alpha-cursor" id="cpAlphaCursor"></div>
-    <div class="cp-preview-row">
-      <div class="cp-preview-box" id="cpPreview"></div>
-      <span class="cp-hex-out dim small" id="cpHexOut">#000000</span>
+    <div class="preview-area">
+      <canvas id="genCanvas"></canvas>
+      <div class="preview-empty" id="genEmpty">fill in content to generate</div>
     </div>
   </div>
 
-  <!-- Hidden inputs -->
-  <input type="file" id="fileInput" accept="image/*" multiple hidden />
-  <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden />
-  <canvas id="qrCanvas" hidden aria-hidden="true"></canvas>
+</div>
 
-  <script src="jsQR.min.js"></script>
-  <script src="qrcodegen.js"></script>
-  <script src="app.js"></script>
+<!-- Color picker -->
+<div class="cpicker" id="colorPicker" hidden>
+  <div class="cp-sv-wrap">
+    <canvas class="cp-sv" id="cpSV" width="200" height="150"></canvas>
+    <div class="cp-sv-cur" id="cpSVCursor"></div>
+  </div>
+  <canvas class="cp-hue" id="cpHue" width="200" height="14"></canvas>
+  <div class="cp-bar-cur" id="cpHueCursor"></div>
+  <canvas class="cp-alpha" id="cpAlpha" width="200" height="14"></canvas>
+  <div class="cp-bar-cur" id="cpAlphaCursor"></div>
+  <div class="cp-bottom">
+    <div class="cp-preview" id="cpPreview"></div>
+    <span class="cp-hex-label" id="cpHexOut">#000000</span>
+  </div>
+</div>
+
+<input type="file" id="fileInput" accept="image/*" multiple hidden />
+<input type="file" id="cameraInput" accept="image/*" capture="environment" hidden />
+<canvas id="qrCanvas" hidden></canvas>
+
+<script src="jsQR.min.js"></script>
+<script src="qrcodegen.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
