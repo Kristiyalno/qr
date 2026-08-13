@@ -421,9 +421,9 @@ textarea.inp { resize:vertical; min-height:60px; line-height:1.5; }
 /* COLOR BLOCK */
 .color-block { display:flex; flex-direction:column; gap:8px; }
 .color-row { display:flex; flex-direction:column; gap:4px; }
-.color-inputs { display:flex; align-items:center; gap:5px; }
+.color-inputs { display:flex; align-items:center; gap:4px; min-width:0; }
 .swatch {
-  width:26px; height:26px;
+  width:24px; height:24px;
   border:1px solid var(--bdr2);
   border-radius:3px;
   flex-shrink:0;
@@ -431,7 +431,7 @@ textarea.inp { resize:vertical; min-height:60px; line-height:1.5; }
 }
 .swatch:hover { border-color:var(--muted); }
 .inp.mono.hex { flex:1; min-width:0; }
-.inp.num { width:40px; flex-shrink:0; text-align:center; padding:6px 4px; }
+.inp.num { width:36px; flex-shrink:0; text-align:center; padding:6px 2px; }
 
 /* OPTIONS GRID */
 .opts-grid {

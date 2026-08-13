@@ -116,10 +116,12 @@ function openPicker(hexEl,swatchEl,cb) {
   const rgb=hexToRgb(hexEl.value)||{r:0,g:0,b:0}, hsv=rgbToHsv(rgb.r,rgb.g,rgb.b);
   cp.h=hsv.h; cp.s=hsv.s; cp.v=hsv.v; cp.a=1;
   const rect=swatchEl.getBoundingClientRect();
-  let top=rect.bottom+8,left=rect.left;
-  if(top+300>window.innerHeight) top=rect.top-300-8;
-  if(left+242>window.innerWidth) left=window.innerWidth-248;
-  cpEl.style.top=Math.max(4,top)+'px'; cpEl.style.left=Math.max(4,left)+'px';
+  const pickerW=242, pickerH=310;
+  let top=rect.bottom+8, left=rect.left;
+  if(top+pickerH>window.innerHeight) top=rect.top-pickerH-8;
+  if(left+pickerW>window.innerWidth) left=window.innerWidth-pickerW-8;
+  top=Math.max(8,top); left=Math.max(8,left);
+  cpEl.style.top=top+'px'; cpEl.style.left=left+'px';
   cpEl.hidden=false; cpRefresh();
 }
 
