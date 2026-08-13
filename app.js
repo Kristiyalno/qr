@@ -125,17 +125,17 @@ function openPicker(hexEl,swatchEl,cb) {
 
 document.addEventListener('mousedown', e => {
   if (cpEl.hidden) return;
-  // keep open if clicking inside the picker or on any swatch
   if (cpEl.contains(e.target)) return;
   if (e.target.closest('.swatch')) return;
   cpEl.hidden = true; cpTarget = null;
-}, true); // capture phase so it fires before stopPropagation on children
+}, true);
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && !cpEl.hidden) {
+    e.stopPropagation();
     cpEl.hidden = true; cpTarget = null;
   }
-});
+}, true);
 
 function cpDrag(cvs,onPos) {
   let down=false;
