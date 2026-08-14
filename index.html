@@ -60,6 +60,7 @@
       <span class="drop-label">Drop image here</span>
       <div class="drop-actions">
         <button class="pill-btn" id="uploadBtn">Choose file</button>
+        <button class="pill-btn" id="pasteBtn">Paste</button>
         <button class="pill-btn" id="cameraBtn">Camera</button>
       </div>
       <div class="drop-overlay">Release to scan</div>
@@ -84,11 +85,6 @@
     <div class="section-hdr">
       <span id="resultLabel">Result</span>
       <button class="text-btn" id="copyAll" hidden>Copy all</button>
-    </div>
-
-    <div class="proc-row" id="processing" hidden>
-      <span class="spinner"></span>
-      <span id="processingText">Scanning...</span>
     </div>
 
     <div class="result-area">
@@ -189,13 +185,21 @@
 
       <div class="divider-label">Export</div>
       <div class="export-row">
-        <button class="pill-btn" id="exportPNG">PNG</button>
-        <button class="pill-btn" id="exportSVG">SVG</button>
-        <button class="pill-btn" id="exportWEBP">WEBP</button>
-        <button class="pill-btn" id="exportJPEG">JPEG</button>
-        <button class="pill-btn" id="exportBMP">BMP</button>
+        <select class="sel" id="exportFormat">
+          <option value="png">PNG</option>
+          <option value="svg">SVG</option>
+          <option value="webp">WEBP</option>
+          <option value="jpeg">JPEG</option>
+          <option value="bmp">BMP</option>
+        </select>
+        <button class="pill-btn" id="downloadBtn">Download</button>
         <button class="pill-btn accent" id="copyQR">Copy image</button>
       </div>
+      <!-- iOS: long-press this image to save to camera roll -->
+      <a class="ios-save-wrap" id="iosSaveWrap" hidden>
+        <img id="iosSaveImg" alt="Long-press to save to camera roll" />
+        <span class="ios-save-hint">Hold to save to camera roll</span>
+      </a>
 
     </div>
   </div>

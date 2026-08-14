@@ -30,7 +30,15 @@ function toast(msg,type='',dur=2200) {
 }
 
 function blurKeys(el) {
-  el.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key==='Escape'){e.preventDefault();el.blur();} });
+  el.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      // if picker is open, close it instead of just blurring
+      if (!cpEl.hidden) { cpEl.hidden = true; cpTarget = null; }
+      el.blur();
+    }
+    if (e.key === 'Enter') { e.preventDefault(); el.blur(); }
+  });
 }
 
 // ── Tabs ───────────────────────────────────────────────────────────────────
@@ -160,9 +168,8 @@ const dropZone   =document.getElementById('dropZone');
 const fileInput  =document.getElementById('fileInput');
 const camInput   =document.getElementById('cameraInput');
 const uploadBtn  =document.getElementById('uploadBtn');
+const pasteBtn   =document.getElementById('pasteBtn');
 const cameraBtn  =document.getElementById('cameraBtn');
-const processing =document.getElementById('processing');
-const procTxt    =document.getElementById('processingText');
 const resultList =document.getElementById('resultList');
 const resultEmpty=document.getElementById('resultEmpty');
 const resultLabel=document.getElementById('resultLabel');
@@ -177,19 +184,60 @@ const qrCtx      =qrCvs.getContext('2d');
 const history    =[];
 
 function decodeFile(file) {
-  return new Promise(resolve=>{
-    const img=new Image(),url=URL.createObjectURL(file);
-    img.onload=()=>{
-      const MAX=1500; let w=img.naturalWidth,h=img.naturalHeight;
-      if(w>MAX||h>MAX){const r=Math.min(MAX/w,MAX/h);w=Math.round(w*r);h=Math.round(h*r);}
-      qrCvs.width=w;qrCvs.height=h;qrCtx.drawImage(img,0,0,w,h);
-      const id=qrCtx.getImageData(0,0,w,h); URL.revokeObjectURL(url);
-      let c=jsQR(id.data,id.width,id.height,{inversionAttempts:'dontInvert'});
-      if(!c)c=jsQR(id.data,id.width,id.height,{inversionAttempts:'onlyInvert'});
-      img.src=''; resolve(c?c.data:null);
+  return new Promise(resolve => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const MAX = 1600;
+      let w = img.naturalWidth, h = img.naturalHeight;
+      if (w > MAX || h > MAX) { const r = Math.min(MAX/w, MAX/h); w = Math.round(w*r); h = Math.round(h*r); }
+
+      // helper: run jsQR on imageData with both inversion modes
+      function tryDecode(id) {
+        return jsQR(id.data, id.width, id.height, { inversionAttempts: 'attemptBoth' });
+      }
+
+      // helper: draw image to canvas at given scale and optional contrast
+      function render(sw, sh, contrast = 1, brightness = 0) {
+        qrCvs.width = sw; qrCvs.height = sh;
+        qrCtx.filter = contrast !== 1 || brightness !== 0
+          ? `contrast(${contrast}) brightness(${brightness})`
+          : 'none';
+        qrCtx.drawImage(img, 0, 0, sw, sh);
+        qrCtx.filter = 'none';
+        return qrCtx.getImageData(0, 0, sw, sh);
+      }
+
+      // attempt 1: normal size
+      let code = tryDecode(render(w, h));
+      if (code) { img.src = ''; return resolve(code.data); }
+
+      // attempt 2: inverted colors (dark bg QR)
+      code = tryDecode(render(w, h));
+      if (code) { img.src = ''; return resolve(code.data); }
+
+      // attempt 3: high contrast
+      code = tryDecode(render(w, h, 2.5, 1.1));
+      if (code) { img.src = ''; return resolve(code.data); }
+
+      // attempt 4: lower contrast (washed out)
+      code = tryDecode(render(w, h, 0.6, 1.3));
+      if (code) { img.src = ''; return resolve(code.data); }
+
+      // attempt 5: smaller — sometimes helps with noise
+      const sw2 = Math.round(w * 0.6), sh2 = Math.round(h * 0.6);
+      code = tryDecode(render(sw2, sh2, 1.8));
+      if (code) { img.src = ''; return resolve(code.data); }
+
+      // attempt 6: grayscale via canvas filter
+      code = tryDecode(render(w, h, 1.5, 1));
+      if (code) { img.src = ''; return resolve(code.data); }
+
+      img.src = '';
+      resolve(null);
     };
-    img.onerror=()=>{URL.revokeObjectURL(url);resolve(null);};
-    img.src=url;
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+    img.src = url;
   });
 }
 
@@ -235,15 +283,12 @@ async function processFiles(files){
   prevImg.src=URL.createObjectURL(imgs[0]);
   prevImg.onload=()=>URL.revokeObjectURL(prevImg.src);
   prevWrap.hidden=false;
-  processing.hidden=false;
-  procTxt.textContent=imgs.length>1?`Scanning ${imgs.length} images...`:'Scanning...';
   resultList.innerHTML=''; resultEmpty.hidden=true;
   const decoded=[];
   for(const f of imgs){
     const v=await decodeFile(f); const isErr=v===null; const type=isErr?'error':detectType(v);
     decoded.push({v,type,name:f.name,isErr}); if(!isErr)addHistory(v,type);
   }
-  processing.hidden=true;
   decoded.forEach(d=>resultList.appendChild(renderCard(d.v,d.type,d.name,d.isErr)));
   const ok=decoded.filter(d=>!d.isErr).length;
   resultLabel.textContent=imgs.length===1?(ok?'Result':'Result — nothing found'):`Result — ${ok}/${imgs.length}`;
@@ -280,6 +325,19 @@ dropZone.addEventListener('dragleave',e=>{e.preventDefault();if(--dragN<=0){drag
 dropZone.addEventListener('dragover', e=>e.preventDefault());
 dropZone.addEventListener('drop',e=>{e.preventDefault();dragN=0;dropZone.classList.remove('drag-over');processFiles(e.dataTransfer.files);});
 uploadBtn.addEventListener('click',e=>{e.stopPropagation();fileInput.click();});
+pasteBtn.addEventListener('click', async e => {
+  e.stopPropagation();
+  try {
+    const items = await navigator.clipboard.read();
+    const files = [];
+    for (const item of items) {
+      const imgType = item.types.find(t => t.startsWith('image/'));
+      if (imgType) { const blob = await item.getType(imgType); files.push(new File([blob], 'pasted.png', {type: imgType})); }
+    }
+    if (files.length) processFiles(files);
+    else toast('No image in clipboard', 'bad');
+  } catch(_) { toast('Paste an image with Ctrl+V instead', 'bad'); }
+});
 cameraBtn.addEventListener('click',e=>{e.stopPropagation();camInput.click();});
 dropZone.addEventListener('click',e=>{if(uploadBtn.contains(e.target)||cameraBtn.contains(e.target))return;fileInput.click();});
 dropZone.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();fileInput.click();}});
@@ -516,10 +574,12 @@ function generateQR(){
     genCvs.style.display='block'; genEmpty.style.display='none';
     genStatus.textContent=`${mods}×${mods} · ${content.length} chars`;
     lastContent=content;
+    updateIOSSave();
   } catch(e){
     genCvs.style.display='none'; genEmpty.style.display='flex';
     genStatus.textContent='Error: '+(e.message||'content too long');
     lastContent=null; lastQR=null;
+    updateIOSSave();
   }
 }
 
@@ -559,15 +619,48 @@ function dlBMP(){
   const blob=new Blob([buf],{type:'image/bmp'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='qr.bmp';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 
-document.getElementById('exportPNG').addEventListener('click',()=>dlCvs('png','image/png'));
-document.getElementById('exportWEBP').addEventListener('click',()=>dlCvs('webp','image/webp',0.95));
-document.getElementById('exportJPEG').addEventListener('click',()=>dlCvs('jpg','image/jpeg',0.95));
-document.getElementById('exportSVG').addEventListener('click',dlSVG);
-document.getElementById('exportBMP').addEventListener('click',dlBMP);
-document.getElementById('copyQR').addEventListener('click',()=>{
-  if(genCvs.style.display==='none'){toast('Generate a QR code first','bad');return;}
-  genCvs.toBlob(async blob=>{try{await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);toast('Image copied','ok');}catch(e){toast('Copy not supported in this browser','bad');};},'image/png');
+// ── Export ─────────────────────────────────────────────────────────────────
+const exportFormat = document.getElementById('exportFormat');
+const downloadBtn  = document.getElementById('downloadBtn');
+const iosSaveWrap  = document.getElementById('iosSaveWrap');
+const iosSaveImg   = document.getElementById('iosSaveImg');
+const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+function updateIOSSave() {
+  if (!isIOS) return;
+  if (genCvs.style.display === 'none') { iosSaveWrap.hidden = true; return; }
+  const fmt = exportFormat.value;
+  if (fmt === 'svg' || fmt === 'bmp') { iosSaveWrap.hidden = true; return; }
+  const mimeMap = { png:'image/png', webp:'image/webp', jpeg:'image/jpeg' };
+  const q = fmt === 'jpeg' ? 0.95 : undefined;
+  iosSaveImg.src = genCvs.toDataURL(mimeMap[fmt] || 'image/png', q);
+  iosSaveWrap.hidden = false;
+}
+
+exportFormat.addEventListener('change', updateIOSSave);
+
+downloadBtn.addEventListener('click', () => {
+  if (genCvs.style.display === 'none') { toast('Generate a QR code first', 'bad'); return; }
+  const fmt = exportFormat.value;
+  if (fmt === 'svg') { dlSVG(); return; }
+  if (fmt === 'bmp') { dlBMP(); return; }
+  const mimeMap = { png:'image/png', webp:'image/webp', jpeg:'image/jpeg' };
+  const q = fmt === 'jpeg' ? 0.95 : undefined;
+  const a = document.createElement('a');
+  a.href = genCvs.toDataURL(mimeMap[fmt] || 'image/png', q);
+  a.download = 'qr.' + fmt;
+  a.click();
 });
+
+document.getElementById('copyQR').addEventListener('click', () => {
+  if (genCvs.style.display === 'none') { toast('Generate a QR code first', 'bad'); return; }
+  genCvs.toBlob(async blob => {
+    try { await navigator.clipboard.write([new ClipboardItem({'image/png': blob})]); toast('Image copied', 'ok'); }
+    catch(e) { toast('Copy not supported in this browser', 'bad'); }
+  }, 'image/png');
+});
+
+// update iOS save whenever QR changes — called from inside generateQR
 genType.addEventListener('change',()=>buildFields(genType.value));
 genEcc.addEventListener('change',generateQR);
 genMStyle.addEventListener('change',generateQR);
