@@ -34,7 +34,7 @@ function blurKeys(el) {
     if (e.key === 'Escape') {
       e.preventDefault();
       // if picker is open, close it instead of just blurring
-      if (cpEl.classList.contains("open")) { cpEl.classList.remove("open"); cpTarget = null; }
+      closePicker();
       el.blur();
     }
     if (e.key === 'Enter') { e.preventDefault(); el.blur(); }
@@ -119,31 +119,53 @@ function cpRefresh() {
   cpTarget.cb();
 }
 
-function openPicker(hexEl,swatchEl,cb) {
-  cpTarget={hexEl,swatchEl,cb};
-  const rgb=hexToRgb(hexEl.value)||{r:0,g:0,b:0}, hsv=rgbToHsv(rgb.r,rgb.g,rgb.b);
-  cp.h=hsv.h; cp.s=hsv.s; cp.v=hsv.v; cp.a=1;
-  const rect=swatchEl.getBoundingClientRect();
-  const pickerW=242, pickerH=310;
-  let top=rect.bottom+8, left=rect.left;
-  if(top+pickerH>window.innerHeight) top=rect.top-pickerH-8;
-  if(left+pickerW>window.innerWidth) left=window.innerWidth-pickerW-8;
-  top=Math.max(8,top); left=Math.max(8,left);
-  cpEl.style.top=top+'px'; cpEl.style.left=left+'px';
-  cpEl.classList.add("open"); cpRefresh();
+const cpOverlay = document.getElementById('cpOverlay');
+let _pickerJustOpened = false;
+
+function closePicker() {
+  cpEl.classList.remove('open');
+  cpOverlay.classList.remove('open');
+  cpTarget = null;
 }
 
+function openPicker(hexEl, swatchEl, cb) {
+  cpTarget = {hexEl, swatchEl, cb};
+  const rgb = hexToRgb(hexEl.value) || {r:0,g:0,b:0};
+  const hsv = rgbToHsv(rgb.r, rgb.g, rgb.b);
+  cp.h = hsv.h; cp.s = hsv.s; cp.v = hsv.v; cp.a = 1;
+  const rect = swatchEl.getBoundingClientRect();
+  const pickerW = 242, pickerH = 310;
+  let top = rect.bottom + 8, left = rect.left;
+  if (top + pickerH > window.innerHeight) top = rect.top - pickerH - 8;
+  if (left + pickerW > window.innerWidth) left = window.innerWidth - pickerW - 8;
+  top = Math.max(8, top); left = Math.max(8, left);
+  cpEl.style.top = top + 'px'; cpEl.style.left = left + 'px';
+  cpEl.classList.add('open');
+  cpOverlay.classList.add('open');
+  _pickerJustOpened = true;
+  // clear flag after this event loop tick so the opening click doesn't self-close
+  setTimeout(() => { _pickerJustOpened = false; }, 0);
+  cpRefresh();
+}
+
+// overlay click: close (covers all browsers/platforms)
+cpOverlay.addEventListener('click', closePicker);
+cpOverlay.addEventListener('touchend', e => { e.preventDefault(); closePicker(); });
+
+// ALSO handle direct document mousedown as backup for Chrome on Windows
+// where fixed overlays can sometimes be skipped due to stacking context issues
 document.addEventListener('mousedown', e => {
-  if (!cpEl.classList.contains("open")) return;
+  if (!cpEl.classList.contains('open')) return;
+  if (_pickerJustOpened) return;
   if (cpEl.contains(e.target)) return;
-  if (e.target.closest('.swatch')) return;
-  cpEl.classList.remove("open"); cpTarget = null;
+  if (e.target.closest && e.target.closest('.swatch')) return;
+  closePicker();
 }, true);
 
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && cpEl.classList.contains("open")) {
+  if (e.key === 'Escape' && cpEl.classList.contains('open')) {
     e.stopPropagation();
-    cpEl.classList.remove("open"); cpTarget = null;
+    closePicker();
   }
 }, true);
 
@@ -428,7 +450,7 @@ function wireColor(hexEl,rEl,gEl,bEl,sw,cb){
   hexEl.addEventListener('input',()=>{const rgb=hexToRgb(hexEl.value);if(!rgb)return;rEl.value=rgb.r;gEl.value=rgb.g;bEl.value=rgb.b;sw.style.background=hexEl.value;cb();});
   [rEl,gEl,bEl].forEach(el=>el.addEventListener('input',()=>{const r=clamp(parseInt(rEl.value)||0,0,255),g=clamp(parseInt(gEl.value)||0,0,255),b=clamp(parseInt(bEl.value)||0,0,255),hex=rgbToHex(r,g,b);hexEl.value=hex;sw.style.background=hex;cb();}));
   [hexEl,rEl,gEl,bEl].forEach(el=>blurKeys(el));
-  sw.addEventListener('click',e=>{e.stopPropagation();openPicker(hexEl,sw,cb);});
+  sw.addEventListener('click',()=>openPicker(hexEl,sw,cb));
 }
 wireColor(fgHex,fgR,fgG,fgB,fgSwatch,generateQR);
 wireColor(bgHex,bgR,bgG,bgB,bgSwatch,generateQR);
@@ -477,7 +499,7 @@ function addLabel(init){
   const sw=document.createElement('div'); sw.className='swatch'; sw.style.background=d.hex;
   const hx=document.createElement('input'); hx.className='inp mono'; hx.value=d.hex; hx.maxLength=9; hx.spellcheck=false;
   hx.addEventListener('input',()=>{if(!hexToRgb(hx.value))return;d.hex=hx.value;sw.style.background=hx.value;generateQR();}); blurKeys(hx);
-  sw.addEventListener('click',e=>{e.stopPropagation();openPicker(hx,sw,()=>{d.hex=hx.value;generateQR();});});
+  sw.addEventListener('click',()=>openPicker(hx,sw,()=>{d.hex=hx.value;generateQR();}));
   const cl=document.createElement('label'); cl.className='lbl'; cl.textContent='Color';
   cr.append(cl,sw,hx); card.appendChild(cr);
   labelList.appendChild(card); generateQR();
