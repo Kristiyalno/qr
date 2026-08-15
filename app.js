@@ -119,12 +119,10 @@ function cpRefresh() {
   cpTarget.cb();
 }
 
-const cpOverlay = document.getElementById('cpOverlay');
 let _pickerJustOpened = false;
 
 function closePicker() {
   cpEl.classList.remove('open');
-  cpOverlay.classList.remove('open');
   cpTarget = null;
 }
 
@@ -141,26 +139,19 @@ function openPicker(hexEl, swatchEl, cb) {
   top = Math.max(8, top); left = Math.max(8, left);
   cpEl.style.top = top + 'px'; cpEl.style.left = left + 'px';
   cpEl.classList.add('open');
-  cpOverlay.classList.add('open');
   _pickerJustOpened = true;
-  // clear flag after this event loop tick so the opening click doesn't self-close
   setTimeout(() => { _pickerJustOpened = false; }, 0);
   cpRefresh();
 }
 
-// overlay click: close (covers all browsers/platforms)
-cpOverlay.addEventListener('click', closePicker);
-cpOverlay.addEventListener('touchend', e => { e.preventDefault(); closePicker(); });
-
-// ALSO handle direct document mousedown as backup for Chrome on Windows
-// where fixed overlays can sometimes be skipped due to stacking context issues
-document.addEventListener('mousedown', e => {
+// pointerdown fires before click and cannot be intercepted by stacking contexts
+document.addEventListener('pointerdown', e => {
   if (!cpEl.classList.contains('open')) return;
   if (_pickerJustOpened) return;
   if (cpEl.contains(e.target)) return;
   if (e.target.closest && e.target.closest('.swatch')) return;
   closePicker();
-}, true);
+});
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && cpEl.classList.contains('open')) {

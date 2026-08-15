@@ -570,10 +570,4 @@ textarea.inp { resize:vertical; min-height:60px; line-height:1.5; }
 .toast.bad { border-left:3px solid var(--err); color:var(--txt); }
 
 /* Picker overlay — covers everything behind the picker to catch outside clicks */
-.cp-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 998;
-  display: none;
-}
-.cp-overlay.open { display: block; }
+
