@@ -119,8 +119,6 @@ function cpRefresh() {
   cpTarget.cb();
 }
 
-let _pickerJustOpened = false;
-
 function closePicker() {
   cpEl.classList.remove('open');
   cpTarget = null;
@@ -139,31 +137,40 @@ function openPicker(hexEl, swatchEl, cb) {
   top = Math.max(8, top); left = Math.max(8, left);
   cpEl.style.top = top + 'px'; cpEl.style.left = left + 'px';
   cpEl.classList.add('open');
-  _pickerJustOpened = true;
-  setTimeout(() => { _pickerJustOpened = false; }, 0);
+  // Focus the picker so focusout fires when user clicks elsewhere
+  cpEl.focus();
   cpRefresh();
 }
 
-// pointerdown fires before click and cannot be intercepted by stacking contexts
-document.addEventListener('pointerdown', e => {
-  if (!cpEl.classList.contains('open')) return;
-  if (_pickerJustOpened) return;
-  if (cpEl.contains(e.target)) return;
-  if (e.target.closest && e.target.closest('.swatch')) return;
-  closePicker();
+// focusout: fires when focus leaves the picker element or any of its children
+// relatedTarget is where focus is going — if it's outside the picker, close
+cpEl.addEventListener('focusout', e => {
+  // relatedTarget is null when focus leaves the document (e.g. clicking scrollbar)
+  // or an element outside the picker
+  if (cpEl.contains(e.relatedTarget)) return;
+  // Small timeout so internal focus transfers (clicking a canvas) don't close it
+  setTimeout(() => {
+    if (!cpEl.contains(document.activeElement)) {
+      closePicker();
+    }
+  }, 100);
 });
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && cpEl.classList.contains('open')) {
     e.stopPropagation();
     closePicker();
+    document.activeElement && document.activeElement.blur();
   }
 }, true);
 
 function cpDrag(cvs,onPos) {
   let down=false;
   function handle(e){ const r=cvs.getBoundingClientRect(),cx=e.touches?e.touches[0].clientX:e.clientX,cy=e.touches?e.touches[0].clientY:e.clientY; onPos(clamp((cx-r.left)/r.width,0,1),clamp((cy-r.top)/r.height,0,1)); cpRefresh(); }
-  cvs.addEventListener('mousedown',e=>{down=true;handle(e);});
+  cvs.addEventListener('mousedown',e=>{
+    e.preventDefault(); // prevents canvas from stealing focus from picker
+    down=true;handle(e);
+  });
   cvs.addEventListener('touchstart',e=>{e.preventDefault();handle(e);},{passive:false});
   window.addEventListener('mousemove',e=>{if(down)handle(e);});
   window.addEventListener('touchmove',e=>{if(down){e.preventDefault();handle(e);}},{passive:false});
