@@ -34,7 +34,7 @@ function blurKeys(el) {
     if (e.key === 'Escape') {
       e.preventDefault();
       // if picker is open, close it instead of just blurring
-      if (!cpEl.hidden) { cpEl.hidden = true; cpTarget = null; }
+      if (cpEl.classList.contains("open")) { cpEl.classList.remove("open"); cpTarget = null; }
       el.blur();
     }
     if (e.key === 'Enter') { e.preventDefault(); el.blur(); }
@@ -130,20 +130,20 @@ function openPicker(hexEl,swatchEl,cb) {
   if(left+pickerW>window.innerWidth) left=window.innerWidth-pickerW-8;
   top=Math.max(8,top); left=Math.max(8,left);
   cpEl.style.top=top+'px'; cpEl.style.left=left+'px';
-  cpEl.hidden=false; cpRefresh();
+  cpEl.classList.add("open"); cpRefresh();
 }
 
 document.addEventListener('mousedown', e => {
-  if (cpEl.hidden) return;
+  if (!cpEl.classList.contains("open")) return;
   if (cpEl.contains(e.target)) return;
   if (e.target.closest('.swatch')) return;
-  cpEl.hidden = true; cpTarget = null;
+  cpEl.classList.remove("open"); cpTarget = null;
 }, true);
 
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && !cpEl.hidden) {
+  if (e.key === 'Escape' && cpEl.classList.contains("open")) {
     e.stopPropagation();
-    cpEl.hidden = true; cpTarget = null;
+    cpEl.classList.remove("open"); cpTarget = null;
   }
 }, true);
 

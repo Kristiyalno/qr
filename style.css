@@ -501,13 +501,13 @@ textarea.inp { resize:vertical; min-height:60px; line-height:1.5; }
   border:1px solid var(--bdr2);
   border-radius:6px;
   padding:10px;
-  display:flex;
+  display:none;
   flex-direction:column;
   gap:8px;
   width:242px;
   box-shadow:0 8px 32px rgba(0,0,0,0.7);
 }
-.cpicker[hidden] { display:none; }
+.cpicker.open { display:flex; }
 .cp-sv-wrap {
   position:relative;
   width:220px;
