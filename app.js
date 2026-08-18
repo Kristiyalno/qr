@@ -33,8 +33,7 @@ function blurKeys(el) {
   el.addEventListener('keydown', e => {
     if (e.key === 'Escape') {
       e.preventDefault();
-      // if picker is open, close it instead of just blurring
-      closePicker();
+      document.querySelectorAll('.inline-picker.open').forEach(p => p.classList.remove('open'));
       el.blur();
     }
     if (e.key === 'Enter') { e.preventDefault(); el.blur(); }
@@ -51,23 +50,15 @@ document.querySelectorAll('.tab').forEach(t=>{
   });
 });
 
-// ══════════════════════════════════════════════════════════════════════════
-// COLOR PICKER
-// ══════════════════════════════════════════════════════════════════════════
-const cpEl    = document.getElementById('colorPicker');
-const cpSVCvs = document.getElementById('cpSV');
-const cpSVCur = document.getElementById('cpSVCursor');
-const cpHCvs  = document.getElementById('cpHue');
-const cpHCur  = document.getElementById('cpHueCursor');
-const cpACvs  = document.getElementById('cpAlpha');
-const cpACur  = document.getElementById('cpAlphaCursor');
-const cpPrev  = document.getElementById('cpPreview');
-const cpHOut  = document.getElementById('cpHexOut');
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.inline-picker.open').forEach(p => p.classList.remove('open'));
+  }
+});
 
-let cp = {h:0,s:1,v:1,a:1};
-let cpTarget = null;
-let cpSvCtx, cpHCtx, cpACtx;
-
+// ══════════════════════════════════════════════════════════════════════════
+// COLOR PICKER — inline, no floating popup
+// ══════════════════════════════════════════════════════════════════════════
 function hsvToRgb(h,s,v) {
   let r,g,b; const i=Math.floor(h*6),f=h*6-i,p=v*(1-s),q=v*(1-f*s),t=v*(1-(1-f)*s);
   switch(i%6){case 0:r=v;g=t;b=p;break;case 1:r=q;g=v;b=p;break;case 2:r=p;g=v;b=t;break;
@@ -81,105 +72,118 @@ function rgbToHsv(r,g,b) {
   return {h,s,v:vv};
 }
 
-function cpDrawSV() {
-  if(!cpSvCtx) cpSvCtx=cpSVCvs.getContext('2d');
-  const ctx=cpSvCtx,w=220,h=160,hc=hsvToRgb(cp.h,1,1);
-  const gH=ctx.createLinearGradient(0,0,w,0); gH.addColorStop(0,'#fff'); gH.addColorStop(1,`rgb(${hc.r},${hc.g},${hc.b})`);
-  ctx.fillStyle=gH; ctx.fillRect(0,0,w,h);
-  const gV=ctx.createLinearGradient(0,0,0,h); gV.addColorStop(0,'rgba(0,0,0,0)'); gV.addColorStop(1,'#000');
-  ctx.fillStyle=gV; ctx.fillRect(0,0,w,h);
-  cpSVCur.style.left=cp.s*w+'px'; cpSVCur.style.top=(1-cp.v)*h+'px';
-}
-function cpDrawHue() {
-  if(!cpHCtx) cpHCtx=cpHCvs.getContext('2d');
-  const ctx=cpHCtx,w=220,h=16,g=ctx.createLinearGradient(0,0,w,0);
-  for(let i=0;i<=360;i+=60) g.addColorStop(i/360,`hsl(${i},100%,50%)`);
-  ctx.fillStyle=g; ctx.fillRect(0,0,w,h);
-  cpHCur.style.marginLeft=(cp.h*w-5)+'px';
-}
-function cpDrawAlpha() {
-  if(!cpACtx) cpACtx=cpACvs.getContext('2d');
-  const ctx=cpACtx,w=220,h=16;
-  for(let x=0;x<w;x+=8) for(let y=0;y<h;y+=8){ctx.fillStyle=((x/8+y/8)%2===0)?'#999':'#fff';ctx.fillRect(x,y,8,8);}
-  const rgb=hsvToRgb(cp.h,cp.s,cp.v);
-  const ga=ctx.createLinearGradient(0,0,w,0);
-  ga.addColorStop(0,`rgba(${rgb.r},${rgb.g},${rgb.b},0)`); ga.addColorStop(1,`rgba(${rgb.r},${rgb.g},${rgb.b},1)`);
-  ctx.fillStyle=ga; ctx.fillRect(0,0,w,h);
-  cpACur.style.marginLeft=(cp.a*w-5)+'px';
-}
-function cpRefresh() {
-  cpDrawSV(); cpDrawHue(); cpDrawAlpha();
-  const rgb=hsvToRgb(cp.h,cp.s,cp.v), hex=rgbToHex(rgb.r,rgb.g,rgb.b);
-  cpPrev.style.background=`rgba(${rgb.r},${rgb.g},${rgb.b},${cp.a})`;
-  cpHOut.textContent=hex;
-  if(!cpTarget) return;
-  cpTarget.hexEl.value=hex; cpTarget.swatchEl.style.background=hex;
-  const wrap=cpTarget.hexEl.closest('.color-inputs')||cpTarget.hexEl.closest('.label-color-row');
-  if(wrap){ const n=wrap.querySelectorAll('.num'); if(n.length>=3){n[0].value=rgb.r;n[1].value=rgb.g;n[2].value=rgb.b;} }
-  cpTarget.cb();
-}
+// Create an inline picker bound to a specific color row
+function makeInlinePicker(pickerId, svId, svCurId, hueId, hueCurId, alphaId, alphaCurId, hexEl, rEl, gEl, bEl, swatchEl, onChange) {
+  const pickerEl = document.getElementById(pickerId);
+  const svCvs    = document.getElementById(svId);
+  const svCur    = document.getElementById(svCurId);
+  const hueCvs   = document.getElementById(hueId);
+  const hueCur   = document.getElementById(hueCurId);
+  const aCvs     = document.getElementById(alphaId);
+  const aCur     = document.getElementById(alphaCurId);
 
-function closePicker() {
-  cpEl.classList.remove('open');
-  cpTarget = null;
-}
+  let state = {h:0, s:0, v:0, a:1};
+  let svCtx, hCtx, aCtx;
 
-function openPicker(hexEl, swatchEl, cb) {
-  cpTarget = {hexEl, swatchEl, cb};
-  const rgb = hexToRgb(hexEl.value) || {r:0,g:0,b:0};
-  const hsv = rgbToHsv(rgb.r, rgb.g, rgb.b);
-  cp.h = hsv.h; cp.s = hsv.s; cp.v = hsv.v; cp.a = 1;
-  const rect = swatchEl.getBoundingClientRect();
-  const pickerW = 242, pickerH = 310;
-  let top = rect.bottom + 8, left = rect.left;
-  if (top + pickerH > window.innerHeight) top = rect.top - pickerH - 8;
-  if (left + pickerW > window.innerWidth) left = window.innerWidth - pickerW - 8;
-  top = Math.max(8, top); left = Math.max(8, left);
-  cpEl.style.top = top + 'px'; cpEl.style.left = left + 'px';
-  cpEl.classList.add('open');
-  // Focus the picker so focusout fires when user clicks elsewhere
-  cpEl.focus();
-  cpRefresh();
-}
-
-// focusout: fires when focus leaves the picker element or any of its children
-// relatedTarget is where focus is going — if it's outside the picker, close
-cpEl.addEventListener('focusout', e => {
-  // relatedTarget is null when focus leaves the document (e.g. clicking scrollbar)
-  // or an element outside the picker
-  if (cpEl.contains(e.relatedTarget)) return;
-  // Small timeout so internal focus transfers (clicking a canvas) don't close it
-  setTimeout(() => {
-    if (!cpEl.contains(document.activeElement)) {
-      closePicker();
-    }
-  }, 100);
-});
-
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && cpEl.classList.contains('open')) {
-    e.stopPropagation();
-    closePicker();
-    document.activeElement && document.activeElement.blur();
+  function drawSV() {
+    if (!svCtx) svCtx = svCvs.getContext('2d');
+    const w = svCvs.offsetWidth || 300, h = 140;
+    svCvs.width = w; svCvs.height = h;
+    const hc = hsvToRgb(state.h,1,1);
+    const gH = svCtx.createLinearGradient(0,0,w,0);
+    gH.addColorStop(0,'#fff'); gH.addColorStop(1,`rgb(${hc.r},${hc.g},${hc.b})`);
+    svCtx.fillStyle=gH; svCtx.fillRect(0,0,w,h);
+    const gV = svCtx.createLinearGradient(0,0,0,h);
+    gV.addColorStop(0,'rgba(0,0,0,0)'); gV.addColorStop(1,'#000');
+    svCtx.fillStyle=gV; svCtx.fillRect(0,0,w,h);
+    svCur.style.left = (state.s * w) + 'px';
+    svCur.style.top  = ((1-state.v) * h) + 'px';
   }
-}, true);
+  function drawHue() {
+    if (!hCtx) hCtx = hueCvs.getContext('2d');
+    const w = hueCvs.offsetWidth || 300, h = 14;
+    hueCvs.width = w; hueCvs.height = h;
+    const g = hCtx.createLinearGradient(0,0,w,0);
+    for(let i=0;i<=360;i+=60) g.addColorStop(i/360,`hsl(${i},100%,50%)`);
+    hCtx.fillStyle=g; hCtx.fillRect(0,0,w,h);
+    hueCur.style.marginLeft = (state.h * w - 5) + 'px';
+  }
+  function drawAlpha() {
+    if (!aCtx) aCtx = aCvs.getContext('2d');
+    const w = aCvs.offsetWidth || 300, h = 14;
+    aCvs.width = w; aCvs.height = h;
+    for(let x=0;x<w;x+=8) for(let y=0;y<h;y+=8){aCtx.fillStyle=((x/8+y/8)%2===0)?'#999':'#fff';aCtx.fillRect(x,y,8,8);}
+    const rgb = hsvToRgb(state.h,state.s,state.v);
+    const ga = aCtx.createLinearGradient(0,0,w,0);
+    ga.addColorStop(0,`rgba(${rgb.r},${rgb.g},${rgb.b},0)`);
+    ga.addColorStop(1,`rgba(${rgb.r},${rgb.g},${rgb.b},1)`);
+    aCtx.fillStyle=ga; aCtx.fillRect(0,0,w,h);
+    aCur.style.marginLeft = (state.a * w - 5) + 'px';
+  }
 
-function cpDrag(cvs,onPos) {
-  let down=false;
-  function handle(e){ const r=cvs.getBoundingClientRect(),cx=e.touches?e.touches[0].clientX:e.clientX,cy=e.touches?e.touches[0].clientY:e.clientY; onPos(clamp((cx-r.left)/r.width,0,1),clamp((cy-r.top)/r.height,0,1)); cpRefresh(); }
-  cvs.addEventListener('mousedown',e=>{
-    e.preventDefault(); // prevents canvas from stealing focus from picker
-    down=true;handle(e);
+  function refresh() {
+    drawSV(); drawHue(); drawAlpha();
+    const rgb = hsvToRgb(state.h, state.s, state.v);
+    const hex = rgbToHex(rgb.r, rgb.g, rgb.b);
+    hexEl.value = hex;
+    swatchEl.style.background = hex;
+    if (rEl) { rEl.value = rgb.r; gEl.value = rgb.g; bEl.value = rgb.b; }
+    onChange();
+  }
+
+  function syncFromHex() {
+    const rgb = hexToRgb(hexEl.value);
+    if (!rgb) return;
+    const hsv = rgbToHsv(rgb.r, rgb.g, rgb.b);
+    state.h = hsv.h; state.s = hsv.s; state.v = hsv.v;
+    refresh();
+  }
+
+  // Toggle open/close on swatch click
+  swatchEl.addEventListener('click', () => {
+    const isOpen = pickerEl.classList.contains('open');
+    // close all pickers first
+    document.querySelectorAll('.inline-picker.open').forEach(p => p.classList.remove('open'));
+    if (!isOpen) {
+      syncFromHex();
+      pickerEl.classList.add('open');
+    }
   });
-  cvs.addEventListener('touchstart',e=>{e.preventDefault();handle(e);},{passive:false});
-  window.addEventListener('mousemove',e=>{if(down)handle(e);});
-  window.addEventListener('touchmove',e=>{if(down){e.preventDefault();handle(e);}},{passive:false});
-  window.addEventListener('mouseup',()=>down=false);
-  window.addEventListener('touchend',()=>down=false);
+
+  // Drag helpers
+  function drag(cvs, onPos) {
+    let down = false;
+    function handle(e) {
+      const r = cvs.getBoundingClientRect();
+      const cx = e.touches ? e.touches[0].clientX : e.clientX;
+      const cy = e.touches ? e.touches[0].clientY : e.clientY;
+      onPos(clamp((cx-r.left)/r.width,0,1), clamp((cy-r.top)/r.height,0,1));
+      refresh();
+    }
+    cvs.addEventListener('mousedown',  e => { e.preventDefault(); down=true; handle(e); });
+    cvs.addEventListener('touchstart', e => { e.preventDefault(); handle(e); }, {passive:false});
+    window.addEventListener('mousemove',  e => { if(down) handle(e); });
+    window.addEventListener('touchmove',  e => { if(down){e.preventDefault();handle(e);} }, {passive:false});
+    window.addEventListener('mouseup',    () => down=false);
+    window.addEventListener('touchend',   () => down=false);
+  }
+
+  drag(svCvs,  (x,y) => { state.s=x; state.v=1-y; });
+  drag(hueCvs, (x)   => { state.h=x; drawSV(); drawAlpha(); refresh(); });
+  drag(aCvs,   (x)   => { state.a=x; });
+
+  // Sync back from hex/rgb inputs
+  hexEl.addEventListener('input', syncFromHex);
+  if (rEl) {
+    [rEl,gEl,bEl].forEach(el => el.addEventListener('input', () => {
+      const r=clamp(parseInt(rEl.value)||0,0,255),g=clamp(parseInt(gEl.value)||0,0,255),b=clamp(parseInt(bEl.value)||0,0,255);
+      const hex=rgbToHex(r,g,b); hexEl.value=hex; swatchEl.style.background=hex;
+      const hsv=rgbToHsv(r,g,b); state.h=hsv.h; state.s=hsv.s; state.v=hsv.v;
+      if(pickerEl.classList.contains('open')) refresh(); else onChange();
+    }));
+  }
 }
-cpDrag(cpSVCvs,(x,y)=>{cp.s=x;cp.v=1-y;});
-cpDrag(cpHCvs, x=>{cp.h=x;cpDrawSV();cpDrawAlpha();});
-cpDrag(cpACvs, x=>{cp.a=x;});
+
 
 // ══════════════════════════════════════════════════════════════════════════
 // SCANNER
@@ -208,58 +212,80 @@ function decodeFile(file) {
     const img = new Image(), url = URL.createObjectURL(file);
     img.onload = () => {
       URL.revokeObjectURL(url);
-      const MAX = 1600;
+
+      // Each decode gets its own canvas — no shared state between parallel calls
+      const cvs = document.createElement('canvas');
+      const ctx = cvs.getContext('2d');
+
+      const MAX = 2000;
       let w = img.naturalWidth, h = img.naturalHeight;
       if (w > MAX || h > MAX) { const r = Math.min(MAX/w, MAX/h); w = Math.round(w*r); h = Math.round(h*r); }
 
-      // helper: run jsQR on imageData with both inversion modes
       function tryDecode(id) {
         return jsQR(id.data, id.width, id.height, { inversionAttempts: 'attemptBoth' });
       }
 
-      // helper: draw image to canvas at given scale and optional contrast
-      function render(sw, sh, contrast = 1, brightness = 0) {
-        qrCvs.width = sw; qrCvs.height = sh;
-        qrCtx.filter = contrast !== 1 || brightness !== 0
-          ? `contrast(${contrast}) brightness(${brightness})`
-          : 'none';
-        qrCtx.drawImage(img, 0, 0, sw, sh);
-        qrCtx.filter = 'none';
-        return qrCtx.getImageData(0, 0, sw, sh);
+      function render(sw, sh, filter) {
+        cvs.width = sw; cvs.height = sh;
+        ctx.filter = filter || 'none';
+        ctx.drawImage(img, 0, 0, sw, sh);
+        ctx.filter = 'none';
+        return ctx.getImageData(0, 0, sw, sh);
       }
 
-      // attempt 1: normal size
+      // Manual threshold pass — converts to pure black/white, helps with low contrast
+      function threshold(id, level) {
+        const out = new ImageData(new Uint8ClampedArray(id.data), id.width, id.height);
+        for (let i = 0; i < out.data.length; i += 4) {
+          const gray = 0.299*out.data[i] + 0.587*out.data[i+1] + 0.114*out.data[i+2];
+          const v = gray > level ? 255 : 0;
+          out.data[i] = out.data[i+1] = out.data[i+2] = v;
+        }
+        return out;
+      }
+
+      // attempt 1: normal
       let code = tryDecode(render(w, h));
-      if (code) { img.src = ''; return resolve(code.data); }
+      if (code) { img.src=''; return resolve(code.data); }
 
-      // attempt 2: inverted colors (dark bg QR)
-      code = tryDecode(render(w, h));
-      if (code) { img.src = ''; return resolve(code.data); }
+      // attempt 2: high contrast
+      code = tryDecode(render(w, h, 'contrast(2) brightness(1.1)'));
+      if (code) { img.src=''; return resolve(code.data); }
 
-      // attempt 3: high contrast
-      code = tryDecode(render(w, h, 2.5, 1.1));
-      if (code) { img.src = ''; return resolve(code.data); }
+      // attempt 3: threshold at 128
+      code = tryDecode(threshold(render(w, h), 128));
+      if (code) { img.src=''; return resolve(code.data); }
 
-      // attempt 4: lower contrast (washed out)
-      code = tryDecode(render(w, h, 0.6, 1.3));
-      if (code) { img.src = ''; return resolve(code.data); }
+      // attempt 4: threshold at 80 (dark images)
+      code = tryDecode(threshold(render(w, h), 80));
+      if (code) { img.src=''; return resolve(code.data); }
 
-      // attempt 5: smaller — sometimes helps with noise
-      const sw2 = Math.round(w * 0.6), sh2 = Math.round(h * 0.6);
-      code = tryDecode(render(sw2, sh2, 1.8));
-      if (code) { img.src = ''; return resolve(code.data); }
+      // attempt 5: threshold at 180 (washed out / light images)
+      code = tryDecode(threshold(render(w, h), 180));
+      if (code) { img.src=''; return resolve(code.data); }
 
-      // attempt 6: grayscale via canvas filter
-      code = tryDecode(render(w, h, 1.5, 1));
-      if (code) { img.src = ''; return resolve(code.data); }
+      // attempt 6: smaller scale (sometimes helps with noise/compression)
+      code = tryDecode(render(Math.round(w*0.5), Math.round(h*0.5), 'contrast(1.8)'));
+      if (code) { img.src=''; return resolve(code.data); }
 
-      img.src = '';
+      // attempt 7: larger scale (helps with small QR codes in large images)
+      if (w < 800) {
+        code = tryDecode(render(w*2, h*2));
+        if (code) { img.src=''; return resolve(code.data); }
+      }
+
+      // attempt 8: sharpen
+      code = tryDecode(render(w, h, 'contrast(1.4) saturate(0)'));
+      if (code) { img.src=''; return resolve(code.data); }
+
+      img.src='';
       resolve(null);
     };
     img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
     img.src = url;
   });
 }
+
 
 function detectType(v){
   try{const u=new URL(v);if(['http:','https:','mailto:','tel:','sms:','ftp:'].includes(u.protocol))return 'url';}catch(_){}
@@ -444,14 +470,9 @@ function buildFields(type){
 }
 function getFlds(t){return fldState[t]||{};}
 
-function wireColor(hexEl,rEl,gEl,bEl,sw,cb){
-  hexEl.addEventListener('input',()=>{const rgb=hexToRgb(hexEl.value);if(!rgb)return;rEl.value=rgb.r;gEl.value=rgb.g;bEl.value=rgb.b;sw.style.background=hexEl.value;cb();});
-  [rEl,gEl,bEl].forEach(el=>el.addEventListener('input',()=>{const r=clamp(parseInt(rEl.value)||0,0,255),g=clamp(parseInt(gEl.value)||0,0,255),b=clamp(parseInt(bEl.value)||0,0,255),hex=rgbToHex(r,g,b);hexEl.value=hex;sw.style.background=hex;cb();}));
-  [hexEl,rEl,gEl,bEl].forEach(el=>blurKeys(el));
-  sw.addEventListener('click',()=>openPicker(hexEl,sw,cb));
-}
-wireColor(fgHex,fgR,fgG,fgB,fgSwatch,generateQR);
-wireColor(bgHex,bgR,bgG,bgB,bgSwatch,generateQR);
+makeInlinePicker('fgPicker','fgSV','fgSVCursor','fgHue','fgHueCursor','fgAlpha','fgAlphaCursor', fgHex,fgR,fgG,fgB,fgSwatch, generateQR);
+makeInlinePicker('bgPicker','bgSV','bgSVCursor','bgHue','bgHueCursor','bgAlpha','bgAlphaCursor', bgHex,bgR,bgG,bgB,bgSwatch, generateQR);
+[fgHex,fgR,fgG,fgB,bgHex,bgR,bgG,bgB].forEach(el=>blurKeys(el));
 
 function makeDraft(el,cb){
   let committed=el.value;
@@ -497,9 +518,76 @@ function addLabel(init){
   const sw=document.createElement('div'); sw.className='swatch'; sw.style.background=d.hex;
   const hx=document.createElement('input'); hx.className='inp mono'; hx.value=d.hex; hx.maxLength=9; hx.spellcheck=false;
   hx.addEventListener('input',()=>{if(!hexToRgb(hx.value))return;d.hex=hx.value;sw.style.background=hx.value;generateQR();}); blurKeys(hx);
-  sw.addEventListener('click',()=>openPicker(hx,sw,()=>{d.hex=hx.value;generateQR();}));
+
+  // inline picker for this label
+  const lblPickerEl=document.createElement('div'); lblPickerEl.className='inline-picker';
+  const lblSvWrap=document.createElement('div'); lblSvWrap.className='cp-sv-wrap';
+  const lblSvCvs=document.createElement('canvas'); lblSvCvs.width=300; lblSvCvs.height=140;
+  const lblSvCur=document.createElement('div'); lblSvCur.className='cp-sv-cur';
+  lblSvWrap.append(lblSvCvs,lblSvCur);
+  const lblHueCvs=document.createElement('canvas'); lblHueCvs.className='cp-strip'; lblHueCvs.width=300; lblHueCvs.height=14;
+  const lblHueCur=document.createElement('div'); lblHueCur.className='cp-strip-cur';
+  const lblACvs=document.createElement('canvas'); lblACvs.className='cp-strip'; lblACvs.width=300; lblACvs.height=14;
+  const lblACur=document.createElement('div'); lblACur.className='cp-strip-cur';
+  lblPickerEl.append(lblSvWrap,lblHueCvs,lblHueCur,lblACvs,lblACur);
+
+  // wire it up manually (same logic as makeInlinePicker but with DOM elements directly)
+  let lblState={h:0,s:0,v:0,a:1};
+  let lblSvCtx,lblHCtx,lblACtx;
+  function lblRefresh(){
+    // SV
+    if(!lblSvCtx)lblSvCtx=lblSvCvs.getContext('2d');
+    const w=lblSvCvs.offsetWidth||300,h=140; lblSvCvs.width=w; lblSvCvs.height=h;
+    const hc=hsvToRgb(lblState.h,1,1);
+    const gH=lblSvCtx.createLinearGradient(0,0,w,0); gH.addColorStop(0,'#fff'); gH.addColorStop(1,`rgb(${hc.r},${hc.g},${hc.b})`);
+    lblSvCtx.fillStyle=gH; lblSvCtx.fillRect(0,0,w,h);
+    const gV=lblSvCtx.createLinearGradient(0,0,0,h); gV.addColorStop(0,'rgba(0,0,0,0)'); gV.addColorStop(1,'#000');
+    lblSvCtx.fillStyle=gV; lblSvCtx.fillRect(0,0,w,h);
+    lblSvCur.style.left=(lblState.s*w)+'px'; lblSvCur.style.top=((1-lblState.v)*h)+'px';
+    // Hue
+    if(!lblHCtx)lblHCtx=lblHueCvs.getContext('2d');
+    const hw=lblHueCvs.offsetWidth||300; lblHueCvs.width=hw; lblHueCvs.height=14;
+    const g=lblHCtx.createLinearGradient(0,0,hw,0);
+    for(let i=0;i<=360;i+=60)g.addColorStop(i/360,`hsl(${i},100%,50%)`);
+    lblHCtx.fillStyle=g; lblHCtx.fillRect(0,0,hw,14);
+    lblHueCur.style.marginLeft=(lblState.h*hw-5)+'px';
+    // Alpha
+    if(!lblACtx)lblACtx=lblACvs.getContext('2d');
+    const aw=lblACvs.offsetWidth||300; lblACvs.width=aw; lblACvs.height=14;
+    for(let x=0;x<aw;x+=8)for(let y=0;y<14;y+=8){lblACtx.fillStyle=((x/8+y/8)%2===0)?'#999':'#fff';lblACtx.fillRect(x,y,8,8);}
+    const rgb=hsvToRgb(lblState.h,lblState.s,lblState.v);
+    const ga=lblACtx.createLinearGradient(0,0,aw,0);
+    ga.addColorStop(0,`rgba(${rgb.r},${rgb.g},${rgb.b},0)`); ga.addColorStop(1,`rgba(${rgb.r},${rgb.g},${rgb.b},1)`);
+    lblACtx.fillStyle=ga; lblACtx.fillRect(0,0,aw,14);
+    lblACur.style.marginLeft=(lblState.a*aw-5)+'px';
+    // output
+    const hex=rgbToHex(rgb.r,rgb.g,rgb.b); hx.value=hex; sw.style.background=hex; d.hex=hex; generateQR();
+  }
+  function lblDrag(cvs,onPos){
+    let down=false;
+    function handle(e){const r=cvs.getBoundingClientRect(),cx=e.touches?e.touches[0].clientX:e.clientX,cy=e.touches?e.touches[0].clientY:e.clientY;onPos(clamp((cx-r.left)/r.width,0,1),clamp((cy-r.top)/r.height,0,1));lblRefresh();}
+    cvs.addEventListener('mousedown',e=>{e.preventDefault();down=true;handle(e);});
+    cvs.addEventListener('touchstart',e=>{e.preventDefault();handle(e);},{passive:false});
+    window.addEventListener('mousemove',e=>{if(down)handle(e);});
+    window.addEventListener('touchmove',e=>{if(down){e.preventDefault();handle(e);}},{passive:false});
+    window.addEventListener('mouseup',()=>down=false);
+    window.addEventListener('touchend',()=>down=false);
+  }
+  lblDrag(lblSvCvs,(x,y)=>{lblState.s=x;lblState.v=1-y;});
+  lblDrag(lblHueCvs,x=>{lblState.h=x;});
+  lblDrag(lblACvs,x=>{lblState.a=x;});
+  sw.addEventListener('click',()=>{
+    const isOpen=lblPickerEl.classList.contains('open');
+    document.querySelectorAll('.inline-picker.open').forEach(p=>p.classList.remove('open'));
+    if(!isOpen){
+      const rgb=hexToRgb(hx.value)||{r:0,g:0,b:0}; const hsv=rgbToHsv(rgb.r,rgb.g,rgb.b);
+      lblState.h=hsv.h; lblState.s=hsv.s; lblState.v=hsv.v; lblState.a=1;
+      lblPickerEl.classList.add('open'); lblRefresh();
+    }
+  });
+
   const cl=document.createElement('label'); cl.className='lbl'; cl.textContent='Color';
-  cr.append(cl,sw,hx); card.appendChild(cr);
+  cr.append(cl,sw,hx); card.appendChild(cr); card.appendChild(lblPickerEl);
   labelList.appendChild(card); generateQR();
 }
 addLblBtn.addEventListener('click',()=>addLabel());

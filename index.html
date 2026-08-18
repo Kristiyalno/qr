@@ -132,6 +132,16 @@
             <input class="inp mono num" id="fgG" value="0"   maxlength="3" placeholder="G" />
             <input class="inp mono num" id="fgB" value="0"   maxlength="3" placeholder="B" />
           </div>
+          <div class="inline-picker" id="fgPicker">
+            <div class="cp-sv-wrap">
+              <canvas id="fgSV" width="300" height="160"></canvas>
+              <div class="cp-sv-cur" id="fgSVCursor"></div>
+            </div>
+            <canvas class="cp-strip" id="fgHue" width="300" height="14"></canvas>
+            <div class="cp-strip-cur" id="fgHueCursor"></div>
+            <canvas class="cp-strip" id="fgAlpha" width="300" height="14"></canvas>
+            <div class="cp-strip-cur" id="fgAlphaCursor"></div>
+          </div>
         </div>
         <div class="color-row">
           <span class="lbl">Background</span>
@@ -141,6 +151,16 @@
             <input class="inp mono num" id="bgR" value="255" maxlength="3" placeholder="R" />
             <input class="inp mono num" id="bgG" value="255" maxlength="3" placeholder="G" />
             <input class="inp mono num" id="bgB" value="255" maxlength="3" placeholder="B" />
+          </div>
+          <div class="inline-picker" id="bgPicker">
+            <div class="cp-sv-wrap">
+              <canvas id="bgSV" width="300" height="160"></canvas>
+              <div class="cp-sv-cur" id="bgSVCursor"></div>
+            </div>
+            <canvas class="cp-strip" id="bgHue" width="300" height="14"></canvas>
+            <div class="cp-strip-cur" id="bgHueCursor"></div>
+            <canvas class="cp-strip" id="bgAlpha" width="300" height="14"></canvas>
+            <div class="cp-strip-cur" id="bgAlphaCursor"></div>
           </div>
         </div>
       </div>
@@ -217,24 +237,7 @@
 
 </div>
 
-<!-- Color picker -->
-
-<div class="cpicker" id="colorPicker" tabindex="-1">
-  <div class="cp-sv-wrap">
-    <canvas id="cpSV" width="220" height="160"></canvas>
-    <div class="cp-sv-cur" id="cpSVCursor"></div>
-  </div>
-  <div class="cp-strips">
-    <canvas class="cp-strip" id="cpHue" width="220" height="16"></canvas>
-    <div class="cp-strip-cur" id="cpHueCursor"></div>
-    <canvas class="cp-strip" id="cpAlpha" width="220" height="16"></canvas>
-    <div class="cp-strip-cur" id="cpAlphaCursor"></div>
-  </div>
-  <div class="cp-foot">
-    <div class="cp-preview-swatch" id="cpPreview"></div>
-    <span class="cp-hex-out mono" id="cpHexOut">#000000</span>
-  </div>
-</div>
+<!-- no floating picker -->
 
 <input type="file" id="fileInput" accept="image/*" multiple hidden />
 <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden />
