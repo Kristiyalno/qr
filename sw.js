@@ -1,10 +1,11 @@
-const CACHE = 'qr-tools-v1';
+const CACHE = 'qr-tools-v2';
 const ASSETS = [
   './',
   './index.html',
   './style.css',
   './app.js',
   './jsQR.min.js',
+  './zxing.min.js',
   './qrcodegen.js',
   './fonts/Inter-Regular.woff2',
   './fonts/Inter-Medium.woff2',

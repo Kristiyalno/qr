@@ -278,6 +278,30 @@ function decodeFile(file) {
       code = tryDecode(render(w, h, 'contrast(1.4) saturate(0)'));
       if (code) { img.src=''; return resolve(code.data); }
 
+      // Final fallback: ZXing — handles perspective distortion, warped/angled codes
+      if (typeof ZXing !== 'undefined') {
+        try {
+          const hints = new Map();
+          hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+          const reader = new ZXing.MultiFormatReader();
+          reader.setHints(hints);
+          // try at full size first, then at a few contrast levels
+          const attempts = [
+            render(w, h),
+            render(w, h, 'contrast(2) brightness(1.1)'),
+            render(w, h, 'contrast(1.5) saturate(0)'),
+          ];
+          for (const id of attempts) {
+            try {
+              const luminance = new ZXing.RGBLuminanceSource(id.data, id.width, id.height);
+              const bitmap = new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(luminance));
+              const result = reader.decode(bitmap);
+              if (result) { img.src=''; return resolve(result.getText()); }
+            } catch(_) {}
+          }
+        } catch(_) {}
+      }
+
       img.src='';
       resolve(null);
     };
